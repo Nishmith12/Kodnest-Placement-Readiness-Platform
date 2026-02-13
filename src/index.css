@@ -1,0 +1,90 @@
+:root {
+    /* Color System */
+    --color-bg: #F7F6F3;
+    --color-text-primary: #111111;
+    --color-text-secondary: #666666;
+    --color-accent: #8B0000;
+    --color-success: #4F772D;
+    --color-warning: #D97706;
+    --color-border: #E5E5E5;
+
+    /* Typography System */
+    --font-serif: "Times New Roman", serif;
+    /* Replace with a better web font if available */
+    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+    --text-base: 16px;
+    --line-height-body: 1.6;
+
+    /* Spacing System */
+    --space-1: 8px;
+    --space-2: 16px;
+    --space-3: 24px;
+    --space-4: 40px;
+    --space-5: 64px;
+
+    /* Transitions */
+    --transition-fast: 150ms ease-in-out;
+    --transition-normal: 200ms ease-in-out;
+}
+
+/* Global Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--line-height-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: var(--space-2);
+}
+
+h1 {
+    font-size: 2.5rem;
+    letter-spacing: -0.02em;
+}
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Utility Classes */
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 var(--space-4);
+}
+
+.text-serif {
+    font-family: var(--font-serif);
+}
+
+.text-accent {
+    color: var(--color-accent);
+}
