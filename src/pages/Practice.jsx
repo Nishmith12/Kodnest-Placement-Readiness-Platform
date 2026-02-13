@@ -1,10 +1,131 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Briefcase, FileText, Building2 } from 'lucide-react';
+import { extractSkills, calculateReadinessScore, generateChecklist, generate7DayPlan, generateQuestions } from '../utils/analysisEngine';
+import { saveAnalysis } from '../utils/storageManager';
 
 export default function Practice() {
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        company: '',
+        role: '',
+        jdText: ''
+    });
+
+    const handleAnalyze = () => {
+        if (!formData.jdText.trim()) {
+            alert('Please enter a job description');
+            return;
+        }
+
+        // Extract skills
+        const extractedSkills = extractSkills(formData.jdText);
+
+        // Generate all outputs
+        const readinessScore = calculateReadinessScore({
+            skills: extractedSkills,
+            company: formData.company,
+            role: formData.role,
+            jdText: formData.jdText
+        });
+
+        const checklist = generateChecklist(extractedSkills);
+        const plan = generate7DayPlan(extractedSkills);
+        const questions = generateQuestions(extractedSkills);
+
+        // Save to history
+        const id = saveAnalysis({
+            company: formData.company || 'Not specified',
+            role: formData.role || 'Not specified',
+            jdText: formData.jdText,
+            extractedSkills,
+            checklist,
+            plan,
+            questions,
+            readinessScore
+        });
+
+        // Navigate to results with the ID
+        navigate(`/dashboard/practice/results?id=${id}`);
+    };
+
     return (
-        <div>
-            <h2 className="text-3xl font-bold mb-6">Practice</h2>
-            <p className="text-gray-600">Coding practice problems will appear here.</p>
+        <div className="max-w-4xl mx-auto space-y-6">
+            <div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">JD Analysis</h2>
+                <p className="text-gray-600">Paste a job description to get personalized preparation insights</p>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+                {/* Company Name */}
+                <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Building2 className="w-4 h-4" />
+                        Company Name (Optional)
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="e.g., Google, Amazon, Microsoft"
+                        value={formData.company}
+                        onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    />
+                </div>
+
+                {/* Role */}
+                <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <Briefcase className="w-4 h-4" />
+                        Role (Optional)
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="e.g., Software Engineer, Frontend Developer"
+                        value={formData.role}
+                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    />
+                </div>
+
+                {/* JD Text */}
+                <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                        <FileText className="w-4 h-4" />
+                        Job Description *
+                    </label>
+                    <textarea
+                        placeholder="Paste the complete job description here..."
+                        value={formData.jdText}
+                        onChange={(e) => setFormData({ ...formData, jdText: e.target.value })}
+                        rows={12}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
+                    />
+                    <div className="mt-2 text-sm text-gray-500">
+                        {formData.jdText.length} characters
+                        {formData.jdText.length > 800 && <span className="text-green-600 ml-2">✓ Detailed JD bonus</span>}
+                    </div>
+                </div>
+
+                {/* Analyze Button */}
+                <button
+                    onClick={handleAnalyze}
+                    disabled={!formData.jdText.trim()}
+                    className="w-full bg-primary hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                >
+                    Analyze JD
+                    <ArrowRight className="w-5 h-5" />
+                </button>
+            </div>
+
+            {/* History Link */}
+            <div className="text-center">
+                <button
+                    onClick={() => navigate('/dashboard/practice/history')}
+                    className="text-primary hover:text-purple-700 font-medium"
+                >
+                    View Analysis History
+                </button>
+            </div>
         </div>
     );
 }

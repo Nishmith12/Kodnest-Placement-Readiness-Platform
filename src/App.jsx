@@ -4,6 +4,8 @@ import LandingPage from './pages/LandingPage';
 import DashboardLayout from './layouts/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import Practice from './pages/Practice';
+import Results from './pages/Results';
+import History from './pages/History';
 import Assessments from './pages/Assessments';
 import Resources from './pages/Resources';
 import Profile from './pages/Profile';
@@ -16,6 +18,8 @@ function App() {
                 <Route path="/dashboard" element={<DashboardLayout />}>
                     <Route index element={<Dashboard />} />
                     <Route path="practice" element={<Practice />} />
+                    <Route path="practice/results" element={<Results />} />
+                    <Route path="practice/history" element={<History />} />
                     <Route path="assessments" element={<Assessments />} />
                     <Route path="resources" element={<Resources />} />
                     <Route path="profile" element={<Profile />} />
