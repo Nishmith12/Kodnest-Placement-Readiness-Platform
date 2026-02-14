@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { getAnalysisById } from '../utils/storageManager';
-import { CheckCircle2, Calendar, Target, MessageSquare, ArrowLeft, Building2, Briefcase } from 'lucide-react';
+import { getAnalysisById, updateAnalysis } from '../utils/storageManager';
+import { CheckCircle2, Calendar, Target, MessageSquare, ArrowLeft, Building2, Briefcase, Download, Copy, Check, AlertCircle } from 'lucide-react';
 
 export default function Results() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [analysis, setAnalysis] = useState(null);
+    const [skillConfidence, setSkillConfidence] = useState({});
+    const [adjustedScore, setAdjustedScore] = useState(0);
+    const [copiedItem, setCopiedItem] = useState(null);
 
     useEffect(() => {
         const id = searchParams.get('id');
@@ -14,13 +17,168 @@ export default function Results() {
             const data = getAnalysisById(id);
             if (data) {
                 setAnalysis(data);
+                // Initialize skill confidence from saved data or default to empty
+                setSkillConfidence(data.skillConfidenceMap || {});
+                // Use adjusted score if exists, otherwise use base score
+                setAdjustedScore(data.adjustedScore || data.readinessScore);
             } else {
-                navigate('/practice');
+                navigate('/dashboard/practice');
             }
         } else {
-            navigate('/practice');
+            navigate('/dashboard/practice');
         }
     }, [searchParams, navigate]);
+
+    // Calculate adjusted score based on skill confidence
+    useEffect(() => {
+        if (!analysis) return;
+
+        const baseScore = analysis.readinessScore;
+        let adjustment = 0;
+
+        Object.values(skillConfidence).forEach(confidence => {
+            if (confidence === 'know') adjustment += 2;
+            else if (confidence === 'practice') adjustment -= 2;
+        });
+
+        const newScore = Math.max(0, Math.min(100, baseScore + adjustment));
+        setAdjustedScore(newScore);
+
+        // Save to localStorage
+        const id = searchParams.get('id');
+        if (id) {
+            updateAnalysis(id, {
+                skillConfidenceMap: skillConfidence,
+                adjustedScore: newScore
+            });
+        }
+    }, [skillConfidence, analysis, searchParams]);
+
+    const toggleSkillConfidence = (skill) => {
+        setSkillConfidence(prev => {
+            const current = prev[skill] || 'default';
+            let next;
+            if (current === 'default') next = 'know';
+            else if (current === 'know') next = 'practice';
+            else next = 'default';
+            return { ...prev, [skill]: next };
+        });
+    };
+
+    const getSkillStyle = (skill) => {
+        const confidence = skillConfidence[skill] || 'default';
+        if (confidence === 'know') {
+            return 'bg-green-100 text-green-700 border-green-300';
+        } else if (confidence === 'practice') {
+            return 'bg-orange-100 text-orange-700 border-orange-300';
+        }
+        return 'bg-purple-100 text-primary border-purple-200';
+    };
+
+    const getSkillIcon = (skill) => {
+        const confidence = skillConfidence[skill] || 'default';
+        if (confidence === 'know') return '✓';
+        if (confidence === 'practice') return '!';
+        return '';
+    };
+
+    const copyToClipboard = async (text, itemName) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedItem(itemName);
+            setTimeout(() => setCopiedItem(null), 2000);
+        } catch (err) {
+            alert('Failed to copy to clipboard');
+        }
+    };
+
+    const format7DayPlan = () => {
+        if (!analysis) return '';
+        let text = '7-DAY PREPARATION PLAN\n';
+        text += '======================\n\n';
+        Object.entries(analysis.plan).forEach(([day, tasks]) => {
+            text += `${day}\n`;
+            tasks.forEach(task => {
+                text += `→ ${task}\n`;
+            });
+            text += '\n';
+        });
+        return text;
+    };
+
+    const formatChecklist = () => {
+        if (!analysis) return '';
+        let text = 'ROUND-WISE PREPARATION CHECKLIST\n';
+        text += '=================================\n\n';
+        Object.entries(analysis.checklist).forEach(([round, items]) => {
+            text += `${round}\n`;
+            items.forEach(item => {
+                text += `• ${item}\n`;
+            });
+            text += '\n';
+        });
+        return text;
+    };
+
+    const formatQuestions = () => {
+        if (!analysis) return '';
+        let text = '10 LIKELY INTERVIEW QUESTIONS\n';
+        text += '==============================\n\n';
+        analysis.questions.forEach((q, idx) => {
+            text += `${idx + 1}. ${q}\n`;
+        });
+        return text;
+    };
+
+    const downloadAsTxt = () => {
+        if (!analysis) return;
+
+        const company = analysis.company !== 'Not specified' ? analysis.company : 'Company';
+        const date = new Date().toISOString().split('T')[0];
+
+        let content = `JOB DESCRIPTION ANALYSIS\n`;
+        content += `========================\n\n`;
+        content += `Company: ${analysis.company}\n`;
+        content += `Role: ${analysis.role}\n`;
+        content += `Date: ${new Date(analysis.createdAt).toLocaleDateString()}\n`;
+        content += `Readiness Score: ${adjustedScore}/100\n\n`;
+
+        content += `EXTRACTED SKILLS\n`;
+        content += `================\n`;
+        Object.entries(analysis.extractedSkills).forEach(([category, skills]) => {
+            content += `\n${category}:\n`;
+            skills.forEach(skill => {
+                const conf = skillConfidence[skill] || 'default';
+                const status = conf === 'know' ? '✓ Know' : conf === 'practice' ? '! Practice' : '- Default';
+                content += `  ${status}: ${skill}\n`;
+            });
+        });
+        content += '\n\n';
+
+        content += formatChecklist();
+        content += '\n';
+        content += format7DayPlan();
+        content += '\n';
+        content += formatQuestions();
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `JD_Analysis_${company}_${date}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const getWeakSkills = () => {
+        const weak = [];
+        Object.entries(skillConfidence).forEach(([skill, confidence]) => {
+            if (confidence === 'practice') weak.push(skill);
+        });
+        return weak.slice(0, 3);
+    };
 
     if (!analysis) {
         return (
@@ -29,6 +187,8 @@ export default function Results() {
             </div>
         );
     }
+
+    const weakSkills = getWeakSkills();
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
@@ -63,44 +223,105 @@ export default function Results() {
                 </div>
             </div>
 
+            {/* Export Buttons */}
+            <div className="flex flex-wrap gap-3">
+                <button
+                    onClick={() => copyToClipboard(format7DayPlan(), 'plan')}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                    {copiedItem === 'plan' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    Copy 7-Day Plan
+                </button>
+                <button
+                    onClick={() => copyToClipboard(formatChecklist(), 'checklist')}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                    {copiedItem === 'checklist' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    Copy Checklist
+                </button>
+                <button
+                    onClick={() => copyToClipboard(formatQuestions(), 'questions')}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
+                    {copiedItem === 'questions' ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                    Copy Questions
+                </button>
+                <button
+                    onClick={downloadAsTxt}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                >
+                    <Download className="w-4 h-4" />
+                    Download TXT
+                </button>
+            </div>
+
             {/* Readiness Score */}
             <div className="bg-gradient-to-br from-purple-50 to-white p-8 rounded-lg shadow-md border border-purple-100">
                 <div className="flex items-center justify-between">
                     <div>
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">Readiness Score</h3>
-                        <p className="text-gray-600">Based on JD analysis and provided details</p>
+                        <p className="text-gray-600">Adjusts based on your skill confidence</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Base: {analysis.readinessScore} |
+                            <span className="text-green-600"> +2 per "know"</span> |
+                            <span className="text-orange-600"> -2 per "practice"</span>
+                        </p>
                     </div>
                     <div className="text-center">
-                        <div className="text-6xl font-bold text-primary">{analysis.readinessScore}</div>
+                        <div className="text-6xl font-bold text-primary">{adjustedScore}</div>
                         <div className="text-gray-500 text-sm mt-1">/ 100</div>
                     </div>
                 </div>
             </div>
 
-            {/* Extracted Skills */}
+            {/* Extracted Skills with Toggles */}
             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
                     <Target className="w-5 h-5 text-primary" />
                     Key Skills Extracted
                 </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                    Click skills to rate your confidence: <span className="text-gray-400">Default</span>{' '}
+                    → <span className="text-green-600">✓ I know this</span>{' '}
+                    → <span className="text-orange-600">! Need practice</span>
+                </p>
                 <div className="space-y-4">
                     {Object.entries(analysis.extractedSkills).map(([category, skills]) => (
                         <div key={category}>
                             <div className="text-sm font-medium text-gray-600 mb-2">{category}</div>
                             <div className="flex flex-wrap gap-2">
                                 {skills.map((skill, idx) => (
-                                    <span
+                                    <button
                                         key={idx}
-                                        className="px-3 py-1 bg-purple-100 text-primary rounded-full text-sm font-medium"
+                                        onClick={() => toggleSkillConfidence(skill)}
+                                        className={`px-3 py-1 rounded-full text-sm font-medium border-2 transition-all cursor-pointer hover:scale-105 ${getSkillStyle(skill)}`}
                                     >
-                                        {skill}
-                                    </span>
+                                        {skill} {getSkillIcon(skill)}
+                                    </button>
                                 ))}
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
+
+            {/* Action Next - Weak Skills Alert */}
+            {weakSkills.length > 0 && (
+                <div className="bg-orange-50 border-l-4 border-orange-400 p-6 rounded-lg">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-orange-900 mb-2">🎯 Focus These Skills</h3>
+                            <ul className="space-y-1 mb-3">
+                                {weakSkills.map((skill, idx) => (
+                                    <li key={idx} className="text-orange-800">• {skill} (need practice)</li>
+                                ))}
+                            </ul>
+                            <p className="text-orange-900 font-medium">👉 Start Day 1 plan now</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Round-wise Checklist */}
             <div className="bg-white p-6 rounded-lg shadow-md">
