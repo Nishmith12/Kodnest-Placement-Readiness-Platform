@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Briefcase, FileText, Building2 } from 'lucide-react';
 import { extractSkills, calculateReadinessScore, generateChecklist, generate7DayPlan, generateQuestions } from '../utils/analysisEngine';
 import { saveAnalysis } from '../utils/storageManager';
+import { generateCompanyIntel } from '../utils/companyIntel';
+import { generateRoundMapping } from '../utils/roundMapping';
 
 export default function Practice() {
     const navigate = useNavigate();
@@ -33,6 +35,17 @@ export default function Practice() {
         const plan = generate7DayPlan(extractedSkills);
         const questions = generateQuestions(extractedSkills);
 
+        // Generate company intel and round mapping
+        const companyIntel = generateCompanyIntel({
+            company: formData.company,
+            jdText: formData.jdText
+        });
+
+        const roundMapping = generateRoundMapping({
+            companySize: companyIntel.size,
+            skills: extractedSkills
+        });
+
         // Save to history
         const id = saveAnalysis({
             company: formData.company || 'Not specified',
@@ -42,7 +55,9 @@ export default function Practice() {
             checklist,
             plan,
             questions,
-            readinessScore
+            readinessScore,
+            companyIntel,
+            roundMapping
         });
 
         // Navigate to results with the ID

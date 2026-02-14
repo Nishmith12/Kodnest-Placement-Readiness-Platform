@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { getAnalysisById, updateAnalysis } from '../utils/storageManager';
-import { CheckCircle2, Calendar, Target, MessageSquare, ArrowLeft, Building2, Briefcase, Download, Copy, Check, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Calendar, Target, MessageSquare, ArrowLeft, Building2, Briefcase, Download, Copy, Check, AlertCircle, TrendingUp, Info } from 'lucide-react';
 
 export default function Results() {
     const [searchParams] = useSearchParams();
@@ -273,6 +273,94 @@ export default function Results() {
                     </div>
                 </div>
             </div>
+
+            {/* Company Intel Card */}
+            {analysis.companyIntel && analysis.companyIntel.name !== 'Not specified' && (
+                <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-lg shadow-md border border-blue-100">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Building2 className="w-5 h-5 text-blue-600" />
+                        Company Intel
+                    </h3>
+                    <div className="space-y-3">
+                        <div>
+                            <div className="text-2xl font-bold text-gray-900">{analysis.companyIntel.name}</div>
+                            <div className="text-sm text-gray-600 mt-1">
+                                {analysis.companyIntel.industry}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium text-gray-700">Size:</span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${analysis.companyIntel.size === 'Enterprise' ? 'bg-purple-100 text-purple-700' :
+                                    analysis.companyIntel.size === 'Mid-size' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-green-100 text-green-700'
+                                }`}>
+                                {analysis.companyIntel.size} ({analysis.companyIntel.sizeCategory})
+                            </span>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                            <div className="font-semibold text-gray-900 mb-2">Typical Hiring Focus:</div>
+                            <p className="text-sm text-gray-700 mb-2">{analysis.companyIntel.hiringFocus}</p>
+                            <div className="text-xs text-gray-600">
+                                <span className="font-medium">Key priorities:</span>
+                                <ul className="list-disc list-inside mt-1 space-y-0.5">
+                                    {analysis.companyIntel.priorities.map((priority, idx) => (
+                                        <li key={idx}>{priority}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded">
+                            <Info className="w-4 h-4" />
+                            <span>Demo Mode: Company intel generated heuristically</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Interview Rounds Timeline */}
+            {analysis.roundMapping && analysis.roundMapping.length > 0 && (
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-primary" />
+                        Interview Rounds
+                    </h3>
+                    <div className="space-y-4">
+                        {analysis.roundMapping.map((round, idx) => (
+                            <div key={idx} className="relative pl-8 pb-6 border-l-2 border-purple-200 last:border-l-0 last:pb-0">
+                                {/* Round Number Badge */}
+                                <div className="absolute -left-5 top-0 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold shadow-md">
+                                    {round.number}
+                                </div>
+                                {/* Round Content */}
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <div className="flex items-start justify-between mb-2">
+                                        <h4 className="text-lg font-semibold text-gray-900">{round.title}</h4>
+                                        {round.duration && (
+                                            <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
+                                                {round.duration}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-gray-700 mb-2">{round.description}</p>
+                                    <div className="flex flex-wrap gap-1.5 mb-3">
+                                        {round.topics.map((topic, topicIdx) => (
+                                            <span key={topicIdx} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                                {topic}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex items-start gap-2 bg-yellow-50 p-2 rounded border-l-2 border-yellow-400">
+                                        <span className="text-sm">💡</span>
+                                        <div className="text-xs text-gray-700">
+                                            <span className="font-semibold">Why this matters:</span> {round.whyMatters}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Extracted Skills with Toggles */}
             <div className="bg-white p-6 rounded-lg shadow-md">
