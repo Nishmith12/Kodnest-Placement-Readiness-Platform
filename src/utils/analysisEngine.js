@@ -1,17 +1,25 @@
 // Skill categories with keywords
 const SKILL_CATEGORIES = {
     'Core CS': ['dsa', 'data structures', 'algorithms', 'oop', 'object oriented', 'dbms', 'database', 'os', 'operating system', 'networks', 'networking', 'computer science'],
-    'Languages': ['java', 'python', 'javascript', 'typescript', 'c++', 'c#', 'golang', 'go lang'],
-    'Web': ['react', 'reactjs', 'next.js', 'nextjs', 'node.js', 'nodejs', 'express', 'rest api', 'restful', 'graphql'],
-    'Data': ['sql', 'mongodb', 'postgresql', 'mysql', 'redis', 'nosql'],
-    'Cloud/DevOps': ['aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'k8s', 'ci/cd', 'jenkins', 'linux'],
-    'Testing': ['selenium', 'cypress', 'playwright', 'junit', 'pytest', 'testing', 'test automation']
+    'Languages': ['java', 'python', 'javascript', 'typescript', 'c++', 'c#', 'golang', 'go lang', 'ruby', 'php', 'swift', 'kotlin'],
+    'Web': ['react', 'reactjs', 'next.js', 'nextjs', 'node.js', 'nodejs', 'express', 'rest api', 'restful', 'graphql', 'angular', 'vue', 'django', 'flask'],
+    'Data': ['sql', 'mongodb', 'postgresql', 'mysql', 'redis', 'nosql', 'cassandra', 'dynamodb'],
+    'Cloud': ['aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'k8s', 'ci/cd', 'jenkins', 'linux', 'terraform', 'ansible'],
+    'Testing': ['selenium', 'cypress', 'playwright', 'junit', 'pytest', 'testing', 'test automation', 'jest', 'mocha']
 };
 
 // Extract skills from JD text
 export function extractSkills(jdText) {
     const text = jdText.toLowerCase();
-    const extracted = {};
+    const extracted = {
+        'Core CS': [],
+        'Languages': [],
+        'Web': [],
+        'Data': [],
+        'Cloud': [],
+        'Testing': [],
+        'Other': []
+    };
 
     Object.entries(SKILL_CATEGORIES).forEach(([category, keywords]) => {
         const found = keywords.filter(keyword => text.includes(keyword));
@@ -23,9 +31,17 @@ export function extractSkills(jdText) {
         }
     });
 
-    // If nothing found, return general stack
-    if (Object.keys(extracted).length === 0) {
-        extracted['General'] = ['Problem Solving', 'Communication', 'Aptitude'];
+    // Check if we found any skills at all
+    const totalSkills = Object.values(extracted).flat().length;
+
+    // Fallback if completely empty
+    if (totalSkills === 0) {
+        extracted['Other'] = [
+            'Communication',
+            'Problem Solving',
+            'Basic Coding',
+            'Team Collaboration'
+        ];
     }
 
     return extracted;
@@ -55,7 +71,7 @@ export function calculateReadinessScore({ skills, company, role, jdText }) {
 export function generateChecklist(skills) {
     const hasWeb = skills['Web'] || [];
     const hasData = skills['Data'] || [];
-    const hasCloud = skills['Cloud/DevOps'] || [];
+    const hasCloud = skills['Cloud'] || [];
     const hasDSA = skills['Core CS']?.some(s => s.toLowerCase().includes('dsa') || s.toLowerCase().includes('algorithm'));
 
     return {

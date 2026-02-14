@@ -8,7 +8,7 @@ export default function Results() {
     const navigate = useNavigate();
     const [analysis, setAnalysis] = useState(null);
     const [skillConfidence, setSkillConfidence] = useState({});
-    const [adjustedScore, setAdjustedScore] = useState(0);
+    const [finalScore, setFinalScore] = useState(0);
     const [copiedItem, setCopiedItem] = useState(null);
 
     useEffect(() => {
@@ -19,8 +19,8 @@ export default function Results() {
                 setAnalysis(data);
                 // Initialize skill confidence from saved data or default to empty
                 setSkillConfidence(data.skillConfidenceMap || {});
-                // Use adjusted score if exists, otherwise use base score
-                setAdjustedScore(data.adjustedScore || data.readinessScore);
+                // Use final score if exists, otherwise use base score
+                setFinalScore(data.finalScore || data.baseScore);
             } else {
                 navigate('/dashboard/practice');
             }
@@ -29,11 +29,11 @@ export default function Results() {
         }
     }, [searchParams, navigate]);
 
-    // Calculate adjusted score based on skill confidence
+    // Calculate final score based on skill confidence
     useEffect(() => {
         if (!analysis) return;
 
-        const baseScore = analysis.readinessScore;
+        const baseScore = analysis.baseScore;
         let adjustment = 0;
 
         Object.values(skillConfidence).forEach(confidence => {
@@ -42,14 +42,14 @@ export default function Results() {
         });
 
         const newScore = Math.max(0, Math.min(100, baseScore + adjustment));
-        setAdjustedScore(newScore);
+        setFinalScore(newScore);
 
-        // Save to localStorage
+        // Save to localStorage with updatedAt timestamp
         const id = searchParams.get('id');
         if (id) {
             updateAnalysis(id, {
                 skillConfidenceMap: skillConfidence,
-                adjustedScore: newScore
+                finalScore: newScore
             });
         }
     }, [skillConfidence, analysis, searchParams]);
@@ -262,13 +262,13 @@ export default function Results() {
                         <h3 className="text-lg font-semibold text-gray-800 mb-2">Readiness Score</h3>
                         <p className="text-gray-600">Adjusts based on your skill confidence</p>
                         <p className="text-sm text-gray-500 mt-1">
-                            Base: {analysis.readinessScore} |
+                            Base: {analysis.baseScore} |
                             <span className="text-green-600"> +2 per "know"</span> |
                             <span className="text-orange-600"> -2 per "practice"</span>
                         </p>
                     </div>
                     <div className="text-center">
-                        <div className="text-6xl font-bold text-primary">{adjustedScore}</div>
+                        <div className="text-6xl font-bold text-primary">{finalScore}</div>
                         <div className="text-gray-500 text-sm mt-1">/ 100</div>
                     </div>
                 </div>
@@ -291,8 +291,8 @@ export default function Results() {
                         <div className="flex items-center gap-2 text-sm">
                             <span className="font-medium text-gray-700">Size:</span>
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${analysis.companyIntel.size === 'Enterprise' ? 'bg-purple-100 text-purple-700' :
-                                    analysis.companyIntel.size === 'Mid-size' ? 'bg-blue-100 text-blue-700' :
-                                        'bg-green-100 text-green-700'
+                                analysis.companyIntel.size === 'Mid-size' ? 'bg-blue-100 text-blue-700' :
+                                    'bg-green-100 text-green-700'
                                 }`}>
                                 {analysis.companyIntel.size} ({analysis.companyIntel.sizeCategory})
                             </span>

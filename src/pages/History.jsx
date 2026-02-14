@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getHistory, deleteAnalysis } from '../utils/storageManager';
+import { getHistory, deleteAnalysis, hasCorruptedEntries } from '../utils/storageManager';
 import { Clock, Building2, Briefcase, Trash2, Eye, TrendingUp } from 'lucide-react';
 
 export default function History() {
     const navigate = useNavigate();
     const [history, setHistory] = useState([]);
+    const [loadError, setLoadError] = useState(false);
 
     useEffect(() => {
         loadHistory();
@@ -14,6 +15,11 @@ export default function History() {
     const loadHistory = () => {
         const data = getHistory();
         setHistory(data);
+
+        // Check for corrupted entries
+        if (hasCorruptedEntries()) {
+            setLoadError(true);
+        }
     };
 
     const handleView = (id) => {

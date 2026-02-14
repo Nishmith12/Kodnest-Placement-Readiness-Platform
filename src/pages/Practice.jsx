@@ -13,11 +13,24 @@ export default function Practice() {
         role: '',
         jdText: ''
     });
+    const [validationError, setValidationError] = useState('');
+    const [validationWarning, setValidationWarning] = useState('');
 
     const handleAnalyze = () => {
+        // Clear previous validation messages
+        setValidationError('');
+        setValidationWarning('');
+
+        // Required validation
         if (!formData.jdText.trim()) {
-            alert('Please enter a job description');
+            setValidationError('Please enter a job description to analyze.');
             return;
+        }
+
+        // Length warning (soft - doesn't block)
+        if (formData.jdText.trim().length < 200) {
+            setValidationWarning('This JD is too short to analyze deeply. Paste full JD for better output.');
+            // Continue with analysis anyway
         }
 
         // Extract skills
@@ -48,14 +61,16 @@ export default function Practice() {
 
         // Save to history
         const id = saveAnalysis({
-            company: formData.company || 'Not specified',
-            role: formData.role || 'Not specified',
+            company: formData.company || "",
+            role: formData.role || "",
             jdText: formData.jdText,
             extractedSkills,
             checklist,
             plan,
             questions,
-            readinessScore,
+            baseScore: readinessScore,
+            finalScore: readinessScore,  // Initially same as base
+            skillConfidenceMap: {},      // Empty initially
             companyIntel,
             roundMapping
         });
@@ -120,6 +135,21 @@ export default function Practice() {
                         {formData.jdText.length > 800 && <span className="text-green-600 ml-2">✓ Detailed JD bonus</span>}
                     </div>
                 </div>
+
+                {/* Validation Messages */}
+                {validationError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                        <span className="font-semibold">⚠️</span>
+                        <span>{validationError}</span>
+                    </div>
+                )}
+
+                {validationWarning && (
+                    <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-center gap-2">
+                        <span className="font-semibold">ℹ️</span>
+                        <span>{validationWarning}</span>
+                    </div>
+                )}
 
                 {/* Analyze Button */}
                 <button
